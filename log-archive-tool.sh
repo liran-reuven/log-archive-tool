@@ -63,15 +63,15 @@ EOL
 
 # Log message {{{
 log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:5s')] $1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
  } 
 
 log_message_e() {
-    echo -e "[$(date '+%Y-%m-%d %H:%M:5s')] $1"
+    echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
  }
 
 log_message_file_convert() {
-    echo "[$(date '+%Y-%m-%d %H:%M:5s')] $1" | tee -a "$log_file"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$log_file"
  } # }}}
 
 # }}}
