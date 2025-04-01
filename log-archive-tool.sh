@@ -1,23 +1,23 @@
 #!/bin/bash
 
-# Sources {{{
-config_file="config.sh"
-config_colors_file="config_colors.sh"
+clear
 
-# Check if config file exist
-if [ -f $config_file ];
-then
-    source $config_file
-fi
+# Functions {{{
 
-# Check if color config file exist
-if [ -f $config_colors_file ];
-then
-    source $config_colors_file
-fi # }}}
+# Check if file exist {{{
+check_file_exist() {
+    local file="$1"
+    if [ -f "$file" ];
+    then
+        source "$file"
+        log_message "[INFO] The file is exist $(basename $file)"
+    else
+        log_message "[ERROR] Can't find $(basename $file)"
+    fi
+}  # }}} 
 
-# Functions {{{ 
-setup_config() {
+# Update config.sh  {{{
+setup_config() { 
     echo -e "Config file not found or missing values. Let's set it up.\n"
     
     read -p "Enter log archive directory: " log_archive_dir
@@ -61,10 +61,53 @@ EOL
     echo -e "\n[INFO] Configuration saved to $config_file"
 } # }}}
 
+# Log message {{{
+log_message() {
+    echo "[$(date '+%Y-%m-%d %H:%M:5s')] $1"
+ } 
+
+log_message_e() {
+    echo -e "[$(date '+%Y-%m-%d %H:%M:5s')] $1"
+ }
+
+log_message_file_convert() {
+    echo "[$(date '+%Y-%m-%d %H:%M:5s')] $1" | tee -a "$log_file"
+ } # }}}
+
+# }}}
+
+# Check if the user provided a directory {{{
+if [ -z "$1" ];
+then
+    echo "Usage: $0 <log-directory>"
+    exit 1
+fi 
+
+log_dir="$1" # }}}
+
+# Sources {{{
+
+config_file="./config/config.sh"
+config_colors_file="./config/config_colors.sh"
+
+# Check if config file exist
+check_file_exist $config_file
+
+# Check if color config file exist
+check_file_exist $config_colors_file # }}}
+
 # Hello {{{
 clear
 echo -e "$(figlet LogShrinker)\n" # }}}
 
+# Valid the log directory {{{
+
+if [ ! -d "$log_dir" ];
+then
+    log_message "[ERROR] Log directory '$log_dir' does not exist."
+    exit 1
+fi # }}}
+    
 # Check the settings to compression {{{
 if [[ -z "$max_log_size" || -z "$log_archive_dir" || -z "$retention_days" || -z "$comp_cmd" || -z "$log_comp_file" ]];
 then
@@ -79,46 +122,64 @@ else
 fi # }}}  
 
 # Check if archive directory exsits {{{
-echo -e "[INFO] Check if archive directory exists"
+log_message_e "[INFO] Check if archive directory exists"
 if [ ! -d "$log_archive_dir" ];
 then
-    echo "[INFO] Archive directory does not exist. Creating it now..."
+    log_message "[INFO] Archive directory does not exist. Creating it now..."
     mkdir -p "$log_archive_dir"
-    echo "[INFO] Archive directory created: $log_archive_dir"
+    log_message "[INFO] Archive directory created: $log_archive_dir"
 else
-    echo "[INFO] Archive directory already exists: $log_archive_dir"
+    log_message "[INFO] Archive directory already exists: $log_archive_dir"
 fi # }}}
 
 # Check if the log file exists {{{
-echo "[INFO] Check if the file exists"
+log_message "[INFO] Check if the file exists"
 if [ ! -f $log_comp_file ];
 then
-    echo "[ERROR] File does not exist!"
+    log_message "[ERROR] File does not exist!"
     exit 1
 else
-    echo "[INFO] File $( basename $log_comp_file ) exists"
+    log_message "[INFO] File $( basename $log_comp_file ) exists"
 fi # }}}
 
 # Get the size of the file {{{
-echo "[INFO] Check file size"
+log_message "[INFO] Check file size"
 file_size=$(du -k "$log_comp_file" | cut -f1)
-echo -e "[INFO] The file size is: $(du -hk "$log_comp_file" | cut -f1)" # }}}
+log_message_e "[INFO] The file size is: $(du -hk "$log_comp_file" | cut -f1)" # }}}
+
+# Generate a timestamped archive filename {{{
+timestamp=$(date '+%Y%m%d_%H%M%S')
+archive_file="$backup_dir/logs_archive_${timestamp}.tar.gz" # }}}
 
 # Compress the log file {{{
-echo "[INFO] Check if need to compress the log file"
+log_message "[INFO] Check if need to compress the log file"
 if [ $file_size -ge "$max_log_size" ];
 then
-    echo "[INFO] The file need to be compress..."
-    echo "[INFO] Compressing $log_comp_file to $log_archive_dir"
+    log_message "[INFO] The file need to be compress..."
+    log_message "[INFO] Compressing $log_comp_file to $log_archive_dir"
     compressed_file="${log_comp_file}${ext}"
     if [[ "$choice" -ge 5 && "$choice" -le 7 ]];
     then
         $comp_cmd "$compressed_file" "$log_comp_file"
+        if [ $? -eq 0 ];
+        then
+            log_message "[SUCCESS] Archived '$log_dir' to '$archive_file'."
+        else
+            log_message "[ERROR] Failed to archive '$log_dir'."
+            exit 1
+        fi
     else
         $comp_cmd "$log_comp_file"
+        if [ $? -eq 0 ];
+        then
+            log_message "[SUCCESS] Archived '$log_dir' to '$archive_file'."
+        else
+            log_message "[ERROR] Failed to archive '$log_dir'."
+            exit 1
+        fi
     fi
-    echo "[INFO] Compressed file created: $compressed_file"
+    log_message "[INFO] Compressed file created: $compressed_file"
 else
-    echo "[INFO] The file is light"
+    log_message "[INFO] The file is below the maximum size (file zise/ maz size + units). No need to archive."
     exit 2
 fi # }}}
