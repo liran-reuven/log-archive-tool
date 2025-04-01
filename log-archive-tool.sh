@@ -144,8 +144,8 @@ fi # }}}
 
 # Get the size of the file {{{
 log_message "[INFO] Check file size"
-file_size=$(du -k "$log_comp_file" | cut -f1)
-log_message_e "[INFO] The file size is: $(du -hk "$log_comp_file" | cut -f1)" # }}}
+log_size=$(du -k "$log_comp_file" | cut -f1)
+log_message_e "[INFO] The file size is: $log_size" # }}}
 
 # Generate a timestamped archive filename {{{
 timestamp=$(date '+%Y%m%d_%H%M%S')
@@ -153,7 +153,7 @@ archive_file="$backup_dir/logs_archive_${timestamp}.tar.gz" # }}}
 
 # Compress the log file {{{
 log_message "[INFO] Check if need to compress the log file"
-if [ $file_size -ge "$max_log_size" ];
+if [ $log_size -ge "$max_log_size" ];
 then
     log_message "[INFO] The file need to be compress..."
     log_message "[INFO] Compressing $log_comp_file to $log_archive_dir"
@@ -180,6 +180,6 @@ then
     fi
     log_message "[INFO] Compressed file created: $compressed_file"
 else
-    log_message "[INFO] The file is below the maximum size (file zise/ maz size + units). No need to archive."
+    log_message "[INFO] The file is below the maximum size $log_size/"$max_log_size"[M]. No need to archive."
     exit 2
 fi # }}}
