@@ -149,7 +149,7 @@ log_message_e "[INFO] The file size is: $log_size" # }}}
 
 # Generate a timestamped archive filename {{{
 timestamp=$(date '+%Y%m%d_%H%M%S')
-archive_file="$backup_dir/logs_archive_${timestamp}.tar.gz" # }}}
+archive_file="$backup_dir/$( basename $log_comp_file | cut -d '.' -f 1)_${timestamp}${ext}" # }}}
 
 # Compress the log file {{{
 log_message "[INFO] Check if need to compress the log file"
