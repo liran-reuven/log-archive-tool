@@ -2,6 +2,8 @@
 
 clear
 
+log_tool_file=/var/log/log_archive_tool.log
+
 # Functions {{{
 
 # Check if file exist {{{
@@ -10,9 +12,9 @@ check_file_exist() {
     if [ -f "$file" ];
     then
         source "$file"
-        log_message "[INFO] The file is exist $(basename $file)"
+        log_message "[INFO] The file is exist $(basename $file)" >> /var/log/log_archive_tool.log
     else
-        log_message "[ERROR] Can't find $(basename $file)"
+        log_message "[ERROR] Can't find $(basename $file)" >> /var/log/log_archive_tool.log
     fi
 }  # }}} 
 
@@ -25,15 +27,16 @@ setup_config() {
     read -p "Enter retention period (days): " retention_days
     read -p "Enter log file to compress: " log_comp_file
     echo -e "Choose a compression format:"
-    echo "1) gzip (.gz)"
-    echo "2) bzip2 (.bz2)"
-    echo "3) xz (.xz)"
-    echo "4) zip (.zip)"
-    echo "5) tar.gz (.tar.gz)"
-    echo "6) tar.bz2 (.tar.bz2)"
-    echo "7) tar.xz (.tar.xz)"
-    echo "8) zstd (.zst)"
+    echo "[1] gzip      (.gz)"
+    echo "[2] bzip2     (.bz2)"
+    echo "[3] xz        (.xz)"
+    echo "[4] zip       (.zip)"
+    echo "[5] tar.gz    (.tar.gz)"
+    echo "[6] tar.bz2   (.tar.bz2)"
+    echo "[7] tar.xz    (.tar.xz)"
+    echo "[8] zstd      (.zst)"
     read -p "Enter a number (1-8): " choice
+    echo
 
     # Map user choice to compression command # {{{
     case "$choice" in
@@ -58,7 +61,7 @@ comp_cmd="$comp_cmd"
 ext="$ext"
 EOL
 
-    echo -e "\n[INFO] Configuration saved to $config_file"
+    log_message_e "[INFO] Configuration saved to $config_file"
 } # }}}
 
 # Log message {{{
@@ -84,6 +87,15 @@ then
 fi 
 
 log_dir="$1" # }}}
+
+# Check for log tool file {{{ 
+if [ ! -f "$log_tool_file" ];
+then
+    touch "$log_tool_file" || { printf "Failed to create log file!\n" >&2; exit 1; }
+    log_message_e "[ERROR] Log file not found. Was created at '/var/log'" >> /var/log/log_archive_tool.log
+else
+    printf "$(log_message) Log file exists: %s\n" "$log_tool_file" >> /var/log/log_archive_tool.log
+fi # }}}
 
 # Sources {{{
 
@@ -122,64 +134,64 @@ else
 fi # }}}  
 
 # Check if archive directory exsits {{{
-log_message_e "[INFO] Check if archive directory exists"
+log_message_e "[INFO] Check if archive directory exists" >> /var/log/log_archive_tool.log
 if [ ! -d "$log_archive_dir" ];
 then
-    log_message "[INFO] Archive directory does not exist. Creating it now..."
+    log_message "[INFO] Archive directory does not exist. Creating it now..." >> /var/log/log_archive_tool.log
     mkdir -p "$log_archive_dir"
-    log_message "[INFO] Archive directory created: $log_archive_dir"
+    log_message "[INFO] Archive directory created: $log_archive_dir" >> /var/log/log_archive_tool.log
 else
-    log_message "[INFO] Archive directory already exists: $log_archive_dir"
+    log_message "[INFO] Archive directory already exists: $log_archive_dir" >> /var/log/log_archive_tool.log
 fi # }}}
 
 # Check if the log file exists {{{
-log_message "[INFO] Check if the file exists"
+log_message "[INFO] Check if the file exists" >> /var/log/log_archive_tool.log
 if [ ! -f $log_comp_file ];
 then
-    log_message "[ERROR] File does not exist!"
+    log_message "[ERROR] File does not exist!" >> /var/log/log_archive_tool.log
     exit 1
 else
-    log_message "[INFO] File $( basename $log_comp_file ) exists"
+    log_message "[INFO] File $( basename $log_comp_file ) exists" >> /var/log/log_archive_tool.log
 fi # }}}
 
 # Get the size of the file {{{
-log_message "[INFO] Check file size"
+log_message "[INFO] Check file size" >> /var/log/log_archive_tool.log
 log_size=$(du -k "$log_comp_file" | cut -f1)
-log_message_e "[INFO] The file size is: $log_size" # }}}
+log_message_e "[INFO] The file size is: $log_size" >> /var/log/log_archive_tool.log # }}}
 
 # Generate a timestamped archive filename {{{
 timestamp=$(date '+%Y%m%d_%H%M%S')
 archive_file="$backup_dir/$( basename $log_comp_file | cut -d '.' -f 1)_${timestamp}${ext}" # }}}
 
 # Compress the log file {{{
-log_message "[INFO] Check if need to compress the log file"
+log_message "[INFO] Check if need to compress the log file" >> /var/log/log_archive_tool.log
 if [ $log_size -ge "$max_log_size" ];
 then
-    log_message "[INFO] The file need to be compress..."
-    log_message "[INFO] Compressing $log_comp_file to $log_archive_dir"
+    log_message "[INFO] The file need to be compress..." >> /var/log/log_archive_tool.log
+    log_message "[INFO] Compressing $log_comp_file to $log_archive_dir" >> /var/log/log_archive_tool.log
     compressed_file="${log_comp_file}${ext}"
     if [[ "$choice" -ge 5 && "$choice" -le 7 ]];
     then
         $comp_cmd "$compressed_file" "$log_comp_file"
         if [ $? -eq 0 ];
         then
-            log_message "[SUCCESS] Archived '$log_dir' to '$archive_file'."
+            log_message "[SUCCESS] Archived '$log_dir' to '$archive_file'." >> /var/log/log_archive_tool.log
         else
-            log_message "[ERROR] Failed to archive '$log_dir'."
+            log_message "[ERROR] Failed to archive '$log_dir'." >> /var/log/log_archive_tool.log
             exit 1
         fi
     else
         $comp_cmd "$log_comp_file"
         if [ $? -eq 0 ];
         then
-            log_message "[SUCCESS] Archived '$log_dir' to '$archive_file'."
+            log_message "[SUCCESS] Archived '$log_dir' to '$archive_file'." >> /var/log/log_archive_tool.log
         else
-            log_message "[ERROR] Failed to archive '$log_dir'."
+            log_message "[ERROR] Failed to archive '$log_dir'." >> /var/log/log_archive_tool.log
             exit 1
         fi
     fi
-    log_message "[INFO] Compressed file created: $compressed_file"
+    log_message "[INFO] Compressed file created: $compressed_file" >> /var/log/log_archive_tool.log
 else
-    log_message "[INFO] The file is below the maximum size $log_size/"$max_log_size"[M]. No need to archive."
+    log_message "[INFO] The file is below the maximum size $log_size/"$max_log_size"[M]. No need to archive." >> /var/log/log_archive_tool.log
     exit 2
 fi # }}}
