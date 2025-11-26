@@ -1,0 +1,8 @@
+services:
+  debian:
+    image: debian:latest
+    container_name: debian_log_archive
+    restart: unless-stopped
+    volumes:
+      - ../../src/log-archive:/usr/local/bin/log-archive
+    command: ["sleep", "infinity"]

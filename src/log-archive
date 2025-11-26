@@ -1,0 +1,58 @@
+#!/bin/bash
+set -e
+
+# Variables {{{
+
+# Log file naming
+timestamp=$(date +%Y%m%d_%H%M%S)
+file_name=logs_archive_$timestamp.tar.gz
+
+# File system
+dir_to_compress=$1
+dir_of_compress=/var/log/compressed_logs
+
+# }}}
+# Functions {{{
+
+console_log() {
+    printf "$(date) [$1] $2\n"
+}
+
+check_if_exist() {
+case $1 in
+    input)
+        if [ ! -d "$2" ]; then
+            console_log "ERROR" "Log directory not found!"
+            exit 1
+        else
+            console_log "INFO" "Log directory found!"
+        fi
+        ;;
+    output)
+        if [ ! -d "$2" ]; then
+            console_log "ERROR" "Output compressed logs directory not found! creating directory..."
+            mkdir $dir_of_compress
+            console_log "INFO" "Output compressed logs directory created."
+        else
+            console_log "INFO" "Output compressed logs directory found!"
+        fi
+esac
+}
+
+# }}}
+# Algorithm {{{
+
+console_log "INFO" "Changing directory to /var/log"
+cd /var/log
+console_log "INFO" "Changed to working directory in /var/log"
+
+check_if_exist "input" "$dir_to_compress"
+check_if_exist "output" "$dir_of_compress"
+
+console_log "INFO" "Compress log directory now..."
+tar -czvf $file_name $dir_to_compress >> /dev/null
+console_log "INFO" "Compressed log completed. store the file in directory"
+mv $file_name $dir_of_compress
+console_log "INFO" "Log directory compressed and can be found in /var/log/compressed_logs"
+
+# }}}
