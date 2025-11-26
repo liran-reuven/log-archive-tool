@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+clear
 
 # Variables {{{
 
@@ -12,6 +13,7 @@ dir_to_compress=$1
 dir_of_compress=/var/log/compressed_logs
 
 # }}}
+
 # Functions {{{
 
 console_log() {
@@ -40,6 +42,7 @@ esac
 }
 
 # }}}
+
 # Algorithm {{{
 
 console_log "INFO" "Changing directory to /var/log"
